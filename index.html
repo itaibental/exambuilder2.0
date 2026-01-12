@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <!-- ========================================== -->
+    <!-- === הגדרות ראשוניות וטעינת משאבים === -->
+    <!-- ========================================== -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>מערכת מחולל מבחני בגרות</title>
+    
+    <!-- ייבוא פונט Rubik מגוגל -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    
+    <!-- קישור לקובץ העיצוב החיצוני -->
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="main-header">
+    exambuilder2.0
+</header>
+
+<!-- Toast Container -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- Confirmation Modal -->
+<div class="modal-overlay" id="confirmModal">
+    <div class="modal-box">
+        <div class="modal-title" id="modalTitle">אישור פעולה</div>
+        <div class="modal-text" id="modalText">האם אתה בטוח?</div>
+        <div class="modal-actions">
+            <button class="modal-btn btn-danger" id="btnConfirmYes" style="background: var(--danger); color: white;">כן, מחק</button>
+            <button class="modal-btn btn-cancel" onclick="UI.closeModal()">ביטול</button>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+    
+    <!-- ======================================================= -->
+    <!-- === עמודה ימנית: ממשק מורה (עריכת שאלות והגדרות) === -->
+    <!-- ======================================================= -->
+    <div class="col-panel col-right" id="rightPanel">
+        <!-- Resizer Handle -->
+        <div class="resizer resizer-right-col" id="dragHandleRight"></div>
+
+        <div class="scroll-content">
+            <h2>✏️ עריכת שאלות</h2>
+            
+            <!-- קטגוריה 1: הגדרות מערכת -->
+            <details class="editor-category" open>
+                <summary>הגדרות מערכת</summary>
+                
+                <!-- הגדרות בחינה (זמן וקוד מורה) -->
+                <div class="form-group">
+                    <label>הגדרות בחינה</label>
+                    <div style="display:flex; gap:1vw; margin-bottom:1vh;">
+                        <div style="flex:1">
+                            <label for="examDurationInput" style="font-size: 0.8rem;">זמן (דקות):</label>
+                            <input type="number" id="examDurationInput" value="90" min="1">
+                        </div>
+                        <div style="flex:1">
+                            <label for="unlockCodeInput" style="font-size: 0.8rem;">קוד מורה:</label>
+                            <input type="text" id="unlockCodeInput" value="1234">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- הגדרות הגשה -->
+                <div class="form-group">
+                    <label>הגדרות שליחה / העלאה</label>
+                    <input type="email" id="teacherEmailInput" placeholder="מייל המורה (לשליחת המבחן)" style="margin-bottom: 1vh;">
+                    <input type="text" id="driveFolderInput" placeholder="קישור לתיקיית Drive (להעלאה)">
+                    <small style="color:#bdc3c7; font-size:0.75rem;">התלמיד יקבל כפתורים לשליחה/העלאה בסיום המבחן.</small>
+                </div>
+
+                <!-- ייבוא קובץ פתרון -->
+                <div class="form-group">
+                    <label for="solutionFileInput" style="color: #f39c12;">ייבוא קובץ פתרון (HTML/Word)</label>
+                    <input type="file" id="solutionFileInput" accept=".html,.htm" onchange="App.handleSolutionUpload(event)">
+                    <small style="color:#bdc3c7; font-size:0.75rem;">קובץ זה יוצג למורה בלבד בזמן בדיקת המבחן.</small>
+                </div>
+            </details>
+            
+            <!-- קטגוריה 2: עריכת שאלות -->
+            <details class="editor-category" open>
+                <summary>עריכת שאלות</summary>
+
+                <!-- הגדרות כותרת ולוגו -->
+                <div class="form-group">
+                     <label>עיצוב כותרת</label>
+                     <input type="text" id="examTitleInput" placeholder="כותרת המבחן" oninput="App.updateExamTitle()" style="margin-bottom: 1vh;">
+                     <div style="display:flex; align-items:center; gap:1vw;">
+                         <label for="schoolLogoInput" style="margin:0; flex-shrink:0;">לוגו:</label>
+                         <input type="file" id="schoolLogoInput" accept="image/*" onchange="App.handleLogoUpload(event)" style="font-size:0.8rem;">
+                     </div>
+                </div>
+
+                <!-- הנחיות כלליות -->
+                <div class="form-group">
+                    <label for="examInstructions" style="color: #ecf0f1;">הנחיות כלליות</label>
+                    <textarea id="examInstructions" rows="3" placeholder="רשום כאן הנחיות כלליות..." oninput="App.updateInstructionsPreview()"></textarea>
+                </div>
+
+                <!-- ניהול חלקים/פרקים -->
+                <div class="form-group">
+                    <label for="qPart">ניהול חלקים</label>
+                    <div class="part-controls">
+                        <select id="qPart" onchange="App.onPartSelectChange()" style="flex-grow: 1;">
+                            <!-- אפשרויות נוצרות ב-JS -->
+                        </select>
+                        <button class="btn-part-action btn-add-part" onclick="App.addPart()" title="הוסף חלק חדש">+</button>
+                        <button class="btn-part-action btn-remove-part" onclick="App.removePart()" title="הסר חלק נוכחי">-</button>
+                    </div>
+                    
+                    <label for="partNameInput" style="margin-top: 2vh; font-size: 0.9em;">שם החלק:</label>
+                    <input type="text" id="partNameInput" oninput="App.updatePartName()" placeholder="למשל: פרק שירה">
+
+                    <div class="part-instructions-area">
+                        <label for="partInstructions">הנחיות ל<span id="partNameLabel" style="color:var(--accent); font-weight:700;">חלק ראשון</span>:</label>
+                        <textarea id="partInstructions" rows="2" placeholder="למשל: ענה על 2 מתוך 3 שאלות..." oninput="App.savePartInstructions()"></textarea>
+                    </div>
+                </div>
+
+                <!-- הוספת שאלה חדשה -->
+                <div style="display:flex; gap:1vw;" class="form-group">
+                    <div style="flex:1">
+                        <label for="qPoints" style="color: #ecf0f1;">ניקוד</label>
+                        <input type="number" id="qPoints" value="10" min="1" max="100">
+                    </div>
+                    <div style="flex:3">
+                         <!-- מרווח -->
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="qText" style="color: #ecf0f1;">תוכן השאלה</label>
+                    <textarea id="qText" rows="4" placeholder="הקלד את השאלה כאן..."></textarea>
+                </div>
+
+                <!-- ניהול סעיפים (חדש) -->
+                <div class="form-group">
+                    <label style="color: #ecf0f1;">סעיפים (אופציונלי)</label>
+                    <div id="subQuestionsList"></div>
+                    <button class="btn-add-sub" onclick="App.addSubQuestionField()">➕ הוסף סעיף</button>
+                </div>
+
+                <!-- שדה למחוון (יוצג רק אם אין סעיפים) -->
+                <div class="form-group" id="mainModelAnswerContainer">
+                    <label for="qModelAnswer" style="color: #ecf0f1;">תשובה לדוגמא (מחוון למורה בלבד)</label>
+                    <textarea id="qModelAnswer" rows="2" placeholder="תשובה זו תהיה מוסתרת מהתלמיד ותוצג רק למורה בבדיקה." style="border-color: #f39c12; background: #fffdf5;"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label style="color: #ecf0f1;">מדיה (אופציונלי)</label>
+                    <input type="text" id="qVideo" placeholder="קישור לוידאו (Drive/YouTube)" style="margin-bottom:1vh;">
+                    <input type="text" id="qImage" placeholder="קישור לתמונה (Drive/URL)">
+                </div>
+
+                <button class="btn-add" onclick="App.addQuestion()">➕ הוסף שאלה</button>
+
+                <!-- סיכום סטטיסטי -->
+                <div class="stats-box">
+                    <h3>סיכום מבחן</h3>
+                    <div id="statsContainer">
+                        <!-- סטטיסטיקה מתעדכנת ב-JS -->
+                    </div>
+                    <div class="stat-row total-row"><span>סה"כ ניקוד:</span> <span id="totalPoints">0</span></div>
+                </div>
+            </details>
+        </div>
+    </div>
+
+    <!-- ======================================================= -->
+    <!-- === עמודה אמצעית: תצוגה מקדימה (איך המבחן ייראה) === -->
+    <!-- ======================================================= -->
+    <div class="col-middle">
+        <div id="questionsList">
+            <!-- כותרת תצוגה מקדימה -->
+            <div id="previewHeader">
+                <img id="previewLogo" src="" alt="School Logo" style="display:none;">
+                <h1 id="previewExamTitle">מבחן בגרות</h1>
+                <input type="text" id="studentNameInput" placeholder="שם התלמיד" oninput="App.updateFilenamePreview()">
+            </div>
+
+            <!-- קופסת הנחיות כלליות -->
+            <div id="previewInstructionsBox"></div>
+
+            <!-- טאבים למעבר בין חלקים -->
+            <div class="tabs" id="previewTabs"></div>
+
+            <!-- מיכל השאלות (נוצר דינמית) -->
+            <div id="previewQuestionsContainer">
+                <div style="text-align: center; color: #bdc3c7; margin-top: 5vh;">
+                    <h3>עדיין אין שאלות בחלק זה</h3>
+                    <p>הוסף שאלות מהתפריט הימני</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ======================================================= -->
+    <!-- === עמודה שמאלית: סיום, הורדה והנחיות שימוש === -->
+    <!-- ======================================================= -->
+    <div class="col-panel col-left" id="leftPanel">
+        <!-- Resizer Handle -->
+        <div class="resizer resizer-left-col" id="dragHandleLeft"></div>
+
+        <div class="scroll-content">
+            <div style="text-align: center; margin-top: 5vh;">
+                <!-- כפתור טעינה (הועבר לכאן) -->
+                <div style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 8px; margin-bottom: 4vh; border: 1px dashed rgba(255,255,255,0.3); text-align: center;">
+                    <label for="importExamInput" style="cursor: pointer; color: var(--accent); font-weight: bold; margin-bottom: 5px; display:block;">📂 טען מבחן קיים לעריכה</label>
+                    <input type="file" id="importExamInput" accept=".html" onchange="App.handleExamImport(event)" style="display: none;">
+                    <button onclick="document.getElementById('importExamInput').click()" style="background: var(--bg-page); border: 1px solid var(--accent); color: var(--primary); margin-top: 5px; width: auto; padding: 5px 15px; font-size: 0.9rem; font-weight:bold; border-radius:4px;">בחר קובץ...</button>
+                    <div style="font-size: 0.75rem; color: #bdc3c7; margin-top: 5px;">תומך רק בקבצים שנוצרו בגרסה זו</div>
+                </div>
+
+                <h2>📤 סיום והפצה</h2>
+                <p style="color: #bdc3c7; margin-bottom: 4vh;">לאחר סיום עריכת המבחן, הורד את הקובץ ושלח אותו לתלמידים.</p>
+                
+                <div class="file-info">
+                    שם הקובץ שיירד:<br>
+                    <strong id="filenamePreview" style="color: var(--accent); font-size:1.1rem;">מבחן - תלמיד.html</strong>
+                </div>
+
+                <button class="btn-download" onclick="Generator.generateAndDownload()">
+                    הורד מבחן (HTML)
+                </button>
+                
+                <hr style="border-color: #34495e; width: 80%; margin: 5vh auto;">
+
+                <div style="font-size: 0.9rem; text-align: right; padding: 0 2vw; color: #bdc3c7;">
+                    <strong>איך זה עובד?</strong>
+                    <ol style="padding-right: 2vw; line-height:1.6;">
+                        <li>הזן מייל ו/או תיקיית דרייב להגשה.</li>
+                        <li>הורד ושלח לתלמיד.</li>
+                        <li>התלמיד יענה, יוריד עותק, וישלח למייל/דרייב שלך בלחיצת כפתור.</li>
+                        <li>פתח, בדוק ותן ציון.</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<footer class="main-footer">
+    נוצר ע"י איתי בן טל בשיתוף רני בן זאב. כל הזכויות שמורות ©️
+</footer>
+
+<!-- ======================================================= -->
+<!-- === טעינת הלוגיקה מתיקיית JS === -->
+<!-- ======================================================= -->
+<script src="js/app.js"></script>
+
+</body>
+</html>
